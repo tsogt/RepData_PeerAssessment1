@@ -3,18 +3,99 @@
 
 ## Loading and preprocessing the data
 
-
-
+```{r, echo = TRUE}
+dcsv<-read.csv('activity.csv', header = TRUE)
+library(data.table)
+dtable<-data.table(dcsv)
+```
 ## What is mean total number of steps taken per day?
 
+```{r,echo = TRUE}
+dtsum<-dtable[, sum(steps), by=date]
+dtsum[,V1]
+hist(dtsum[,V1])
+```
 
-
+### mean
+```{r, echo = TRUE}
+mean(dtsum[,V1],na.rm=TRUE)
+```
+### median
+```{r,echo=TRUE}
+median(dtsum[,V1],na.rm=TRUE)
+```
 ## What is the average daily activity pattern?
 
+### plot by interval
 
+```{r,echo=TRUE}
+dtmean<-dtable[,mean(steps,na.rm = TRUE),by = interval]
+plot(dtmean,type= "l")
+```
+
+### Interval with max steps
+```{r,echo = TRUE}
+dtmean[(dtmean[,V1]==max(dtmean[,V1]))==TRUE][,interval]
+```
 
 ## Imputing missing values
 
+### Number of missing values
+```{r,echo=TRUE}
+sum(is.na(dtable[,steps]) == TRUE)
+```
 
+### Filling missing values by average of intervals by all days
 
+```{r,echo=TRUE}
+#dtmean[dtmean[,interval == 5]][,V1]
+#dtable[dtable[,interval == 5]]
+
+Dtable<-transform(dtable,steps = as.double(steps),date = as.Date(date))
+dtable2<-Dtable
+
+sapply(Dtable,mode)
+
+for(i in dtmean[,interval])
+  {
+  dt_intl<-Dtable[Dtable[,interval == i]]
+  dt_intl_cond<-is.na(dt_intl[,steps]) == TRUE
+  #Dt_intl<-transform(dt_intl,steps=as.double(steps))
+  fill<-as.double(dtmean[dtmean[,interval == i]][,V1])
+  #print(fill)
+  dtable2[dtable2[,interval == i]][dt_intl_cond][,"steps"] <- as.double(fill)
+  
+  }
+
+sum(is.na(dtable2[,steps]))
+```
+
+### histogram of dataset with no missing values
+```{r, echo=TRUE}
+
+dtsum2<-dtable2[, sum(steps), by=date]
+#dtsum2[,V1]
+hist(dtsum2[,V1])
+dtable2
+dtable
+
+```
 ## Are there differences in activity patterns between weekdays and weekends?
+```{r,echo=TRUE}
+dtable2[,weekdays:=1]
+dtable2[weekdays(dtable2[,date]) == "Sunday"][,"weekdays"] = 2
+dtable2[weekdays(dtable2[,date]) == "Sunday"]
+
+dtable2_wy<-dtable2[dtable2[,weekdays] == 1]
+dtable2_wd<-dtable2[dtable2[,weekdays] == 2]
+
+dtmean_wy<-dtable2_wy[,mean(steps),by = interval]
+dtmean_wd<-dtable2_wd[,mean(steps),by = interval]
+
+par(mfrow=c(2,1))
+plot(dtmean_wy,type= "l")
+title("weekdays")
+plot(dtmean_wd,type= "l")
+title("weekend")
+
+```
